@@ -2,7 +2,10 @@
 name = "praborrow-macros"
 version.workspace = true
 edition.workspace = true
-description = "Procedural macros for PraBorrow defense (derive Constitution) and verification logic."
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Procedural macros for PraBorrow defense and verification logic."
 
 [lib]
 proc-macro = true

@@ -1,3 +1,8 @@
+//! Procedural macros for PraBorrow defense and verification.
+//!
+//! Provides `#[derive(Constitution)]` for generating runtime invariant checks.
+//! Includes experimental Z3/SMT-LIB proof obligation generation.
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Fields, Meta, Lit};
@@ -12,7 +17,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
     if let Data::Struct(data) = &input.data {
         if let Fields::Named(fields) = &data.fields {
             for field in &fields.named {
-                let field_name = &field.ident;
+                let _field_name = &field.ident;
                 for attr in &field.attrs {
                     if attr.path().is_ident("invariant") {
                         if let Meta::List(list) = &attr.meta {
@@ -39,7 +44,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                                      // (Very naive parser for prototype)
                                      
                                      // Emit a compile-time note about the Z3 proof obligation
-                                     let proof_obligation = format!("; Z3 Proof Obligation: (assert {})", smt_expr);
+                                     let _proof_obligation = format!("; Z3 Proof Obligation: (assert {})", smt_expr);
                                      
                                      // We inject this check at runtime AND emit the proof string
                                      checks.push(quote! {
