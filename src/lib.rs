@@ -31,7 +31,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                             let check_expr = quote! { #expr };
                             let expr_str = check_expr.to_string();
 
-                            let err_msg =
+                            let _err_msg =
                                 format!("Constitutional Invariant Violated: {}", expr_str);
 
                             // Year 3: SMT-LIB Translation
@@ -50,7 +50,10 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                             checks.push(quote! {
                                 // SMT: #proof_obligation
                                 if !(#check_expr) {
-                                    panic!(#err_msg);
+                                    return Err(crate::ConstitutionError::InvariantViolation {
+                                        expression: #expr_str.to_string(),
+                                        values: std::collections::BTreeMap::new(),
+                                    });
                                 }
                             });
                         }
@@ -62,8 +65,37 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         impl crate::Constitution for #name {
-            fn enforce_law(&self) {
+            fn enforce_law(&self) -> Result<(), crate::ConstitutionError> {
                 #(#checks)*
+                Ok(())
+            }
+        }
+
+        #[cfg(feature = "prover")]
+        impl praborrow::prover::ProveInvariant for #name {
+            fn invariant_expressions() -> &'static [&'static str] {
+                &[
+                    // TODO: Extract actual regex strings from attributes
+                    // For now we just put placeholders or the raw string if we captured it
+                    "self.balance >= 0" 
+                ]
+            }
+
+            fn compute_data_hash(&self) -> Vec<u8> {
+                // Simple hash strategy for Phase 6: Hash the Debug string
+                use praborrow::prover::sha2::{Digest, Sha256};
+                let mut hasher = Sha256::new();
+                hasher.update(format!("{:?}", self));
+                hasher.finalize().to_vec()
+            }
+            
+            fn verify_with_context(&self, ctx: &praborrow::prover::SmtContext) -> Result<praborrow::prover::VerificationToken, praborrow::prover::ProofError> {
+                // Stub simple verification or delegate
+                // In Phase 6 we can rely on verify_invariants calling the parser
+                // We need to implement FieldValueProvider
+                
+                // For now, return stub if Z3 not active, or basic check
+                ctx.verify_stub()
             }
         }
     };
