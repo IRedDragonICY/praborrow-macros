@@ -7,6 +7,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, Meta, parse_macro_input};
 
+mod visitor;
+use crate::visitor::InvariantVisitor;
+use syn::visit::Visit;
+
 #[proc_macro_derive(Constitution, attributes(invariant))]
 pub fn derive_constitution(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -34,17 +38,21 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                             let _err_msg =
                                 format!("Constitutional Invariant Violated: {}", expr_str);
 
-                            // Year 3: SMT-LIB Translation
-                            // We attempt to translate "self.value > 0" to "(assert (> value 0))"
-                            let smt_expr = expr_str
-                                .replace("self . ", "")
-                                .replace(" > ", " (> ")
-                                .replace(" >= ", " (>= ");
-                            // (Very naive parser for prototype)
+                             // Task 6: SMT-LIB Translation using InvariantVisitor
+                             let mut visitor = InvariantVisitor::new();
+                             visitor.visit_expr(&expr);
 
-                            // Emit a compile-time note about the Z3 proof obligation
-                            let _proof_obligation =
-                                format!("; Z3 Proof Obligation: (assert {})", smt_expr);
+                             if !visitor.errors.is_empty() {
+                                 let err_msg = format!("SMT Translation Error: {}", visitor.errors.join("; "));
+                                 // We utilize the compile_error macro if we want to stop compilation,
+                                 // but here the macro is already processing. We can emit a syn::Error.
+                                 return syn::Error::new_spanned(expr, err_msg).to_compile_error().into();
+                             }
+                             let smt_expr = visitor.smt_output;
+
+                             // Emit a compile-time note about the Z3 proof obligation
+                             let _proof_obligation =
+                                 format!("; Z3 Proof Obligation: (assert {})", smt_expr);
 
                             // We inject this check at runtime AND emit the proof string
                             checks.push(quote! {
