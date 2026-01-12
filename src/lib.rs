@@ -77,7 +77,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                 &[
                     // TODO: Extract actual regex strings from attributes
                     // For now we just put placeholders or the raw string if we captured it
-                    "self.balance >= 0" 
+                    "self.balance >= 0"
                 ]
             }
 
@@ -88,12 +88,12 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                 hasher.update(format!("{:?}", self));
                 hasher.finalize().to_vec()
             }
-            
+
             fn verify_with_context(&self, ctx: &praborrow::prover::SmtContext) -> Result<praborrow::prover::VerificationToken, praborrow::prover::ProofError> {
                 // Stub simple verification or delegate
                 // In Phase 6 we can rely on verify_invariants calling the parser
                 // We need to implement FieldValueProvider
-                
+
                 // For now, return stub if Z3 not active, or basic check
                 ctx.verify_stub()
             }
