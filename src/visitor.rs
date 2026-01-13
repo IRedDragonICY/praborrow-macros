@@ -80,9 +80,11 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
         }
     }
 
+    #[allow(clippy::collapsible_if)]
     fn visit_expr_field(&mut self, node: &'ast syn::ExprField) {
         // Handle self.field
         if let Expr::Path(path) = &*node.base {
+             // Match on self to collapse if statements
              if path.path.is_ident("self") {
                  if let Member::Named(ident) = &node.member {
                      self.smt_output = ident.to_string();
