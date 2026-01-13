@@ -1,5 +1,5 @@
 use syn::visit::Visit;
-use syn::{BinOp, Expr, ExprBinary, ExprPath, ExprUnary, UnOp, ExprLit, Lit, Member};
+use syn::{BinOp, Expr, ExprBinary, ExprLit, ExprPath, ExprUnary, Lit, Member, UnOp};
 
 /// Visitor that translates Rust expressions into SMT-LIB 2.0 format.
 pub struct InvariantVisitor {
@@ -49,7 +49,8 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
             BinOp::And(_) => "and",
             BinOp::Or(_) => "or",
             _ => {
-                self.errors.push(format!("Unsupported binary operator: {:?}", node.op));
+                self.errors
+                    .push(format!("Unsupported binary operator: {:?}", node.op));
                 return;
             }
         };
@@ -63,7 +64,8 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
             UnOp::Not(_) => "not",
             UnOp::Neg(_) => "-",
             _ => {
-                self.errors.push(format!("Unsupported unary operator: {:?}", node.op));
+                self.errors
+                    .push(format!("Unsupported unary operator: {:?}", node.op));
                 return;
             }
         };
@@ -73,10 +75,11 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
     fn visit_expr_path(&mut self, node: &'ast ExprPath) {
         // Handle identifiers (variables)
         if let Some(ident) = node.path.get_ident() {
-             self.smt_output = ident.to_string();
+            self.smt_output = ident.to_string();
         } else {
-             // Basic support for simple paths if needed, or error
-             self.errors.push(format!("Complex paths not supported: {:?}", node.path));
+            // Basic support for simple paths if needed, or error
+            self.errors
+                .push(format!("Complex paths not supported: {:?}", node.path));
         }
     }
 
@@ -84,32 +87,35 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
     fn visit_expr_field(&mut self, node: &'ast syn::ExprField) {
         // Handle self.field
         if let Expr::Path(path) = &*node.base {
-             // Match on self to collapse if statements
-             if path.path.is_ident("self") {
-                 if let Member::Named(ident) = &node.member {
-                     self.smt_output = ident.to_string();
-                     return;
-                 }
-             }
+            // Match on self to collapse if statements
+            if path.path.is_ident("self") {
+                if let Member::Named(ident) = &node.member {
+                    self.smt_output = ident.to_string();
+                    return;
+                }
+            }
         }
-        self.errors.push("Only self.field access is supported".to_string());
+        self.errors
+            .push("Only self.field access is supported".to_string());
     }
 
     fn visit_expr_lit(&mut self, node: &'ast ExprLit) {
         match &node.lit {
             Lit::Int(i) => self.smt_output = i.to_string(),
             Lit::Bool(b) => self.smt_output = b.value.to_string(),
-            _ => self.errors.push(format!("Unsupported literal: {:?}", node.lit)),
+            _ => self
+                .errors
+                .push(format!("Unsupported literal: {:?}", node.lit)),
         }
     }
-    
+
     fn visit_expr(&mut self, node: &'ast Expr) {
         // Dispatch to specific methods via default impl, but we need to override to handle
         // fallback or just rely on specific implementations above.
-        // syn::visit::visit_expr(self, node); 
-        // We must implement specific visit methods or the default visit_expr just recurses 
+        // syn::visit::visit_expr(self, node);
+        // We must implement specific visit methods or the default visit_expr just recurses
         // without doing anything logic-specific for the node itself if not matched.
-        
+
         match node {
             Expr::Binary(e) => self.visit_expr_binary(e),
             Expr::Unary(e) => self.visit_expr_unary(e),
@@ -117,7 +123,9 @@ impl<'ast> Visit<'ast> for InvariantVisitor {
             Expr::Field(e) => self.visit_expr_field(e),
             Expr::Lit(e) => self.visit_expr_lit(e),
             Expr::Paren(e) => self.visit_expr(&e.expr), // Unwrap parens
-            _ => self.errors.push(format!("Unsupported expression type: {:?}", node)),
+            _ => self
+                .errors
+                .push(format!("Unsupported expression type: {:?}", node)),
         }
     }
 }
