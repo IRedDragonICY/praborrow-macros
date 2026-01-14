@@ -17,6 +17,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let mut checks = Vec::new();
+    let mut invariant_strings = Vec::new();
 
     if let Data::Struct(syn::DataStruct {
         fields: Fields::Named(fields),
@@ -34,6 +35,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
                         if let Ok(expr) = list.parse_args::<syn::Expr>() {
                             let check_expr = quote! { #expr };
                             let expr_str = check_expr.to_string();
+                            invariant_strings.push(expr_str.clone());
 
                             let _err_msg =
                                 format!("Constitutional Invariant Violated: {}", expr_str);
@@ -86,9 +88,7 @@ pub fn derive_constitution(input: TokenStream) -> TokenStream {
         impl praborrow::prover::ProveInvariant for #name {
             fn invariant_expressions() -> &'static [&'static str] {
                 &[
-                    // TODO: Extract actual regex strings from attributes
-                    // For now we just put placeholders or the raw string if we captured it
-                    "self.balance >= 0"
+                    #(#invariant_strings),*
                 ]
             }
 
